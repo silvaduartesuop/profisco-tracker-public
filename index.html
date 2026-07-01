@@ -76,6 +76,7 @@
   .menu .items button:hover{background:var(--light)}
   .menu.open .items{display:block}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <header>
@@ -85,9 +86,12 @@
     <button class="btn primary" onclick="githubSave()">⬆ Salvar no GitHub</button>
     <button class="btn ghost" onclick="githubLoad()">⬇ Carregar do GitHub</button>
     <button class="btn ghost" onclick="openSettings()">⚙ Configurar GitHub</button>
+    <button class="btn ghost" onclick="exportXLSX()">⬇ Baixar planilha (.xlsx)</button>
     <div class="menu" id="expMenu">
       <button class="btn ghost" onclick="toggleMenu(event)">Exportar / Importar ▾</button>
       <div class="items">
+        <button onclick="exportXLSX()">Baixar planilha (.xlsx)</button>
+        <button onclick="githubSaveXlsxVersion()">Salvar versão .xlsx no GitHub</button>
         <button onclick="exportJSON()">Exportar data.json</button>
         <button onclick="exportCSV()">Exportar CSV</button>
         <button onclick="document.getElementById('imp').click()">Importar JSON…</button>
@@ -343,6 +347,44 @@ function exportCSV(){
 }
 function importJSON(inp){const f=inp.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{DATA=JSON.parse(rd.result);persist();afterLoad();toast("JSON importado.");}catch(e){toast("JSON inválido.");}};rd.readAsText(f);inp.value="";}
 async function resetBundled(){if(!confirm("Descartar rascunho local e recarregar o data.json original?"))return;localStorage.removeItem(LS_DATA);await loadBundled();toast("Recarregado do arquivo original.");}
+
+/* ---------- planilha .xlsx + versionamento ---------- */
+function buildAOA(){
+  const keys=DATA.columns.map(c=>c.key);
+  const header=DATA.columns.map(c=>c.label);
+  const aoa=[header];
+  DATA.rows.forEach(r=>aoa.push(keys.map(k=>{ let v=r[k]; return v==null?"":v; })));
+  return aoa;
+}
+function buildWorkbook(){
+  const ws=XLSX.utils.aoa_to_sheet(buildAOA());
+  ws['!cols']=DATA.columns.map(c=>({wch: c.type==='longtext'?42:(c.type==='title'?38:16)}));
+  ws['!freeze']={xSplit:0,ySplit:1};
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Visão Geral");
+  return wb;
+}
+function stampDay(){const d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
+function stampFull(){const d=new Date(),p=n=>String(n).padStart(2,'0');return stampDay()+'_'+p(d.getHours())+p(d.getMinutes());}
+function exportXLSX(){
+  if(typeof XLSX==='undefined'){toast('Biblioteca de planilha ainda carregando — tente novamente em 1s.');return;}
+  XLSX.writeFile(buildWorkbook(), 'ACOMPANHAMENTO_PROFISCO_II_vs_'+stampDay()+'.xlsx');
+  $('#expMenu').classList.remove('open');
+}
+async function githubSaveXlsxVersion(){
+  $('#expMenu').classList.remove('open');
+  if(!SET.owner||!SET.repo)return openSettings();
+  if(!SET.token){toast('Configure um token com escrita para versionar no GitHub.');return openSettings();}
+  if(typeof XLSX==='undefined'){toast('Biblioteca de planilha ainda carregando.');return;}
+  const b64=XLSX.write(buildWorkbook(), {bookType:'xlsx', type:'base64'});
+  const path='versoes/ACOMPANHAMENTO_PROFISCO_II_'+stampFull()+'.xlsx';
+  const url='https://api.github.com/repos/'+SET.owner+'/'+SET.repo+'/contents/'+path;
+  try{
+    const r=await fetch(url,{method:'PUT',headers:ghHeaders(),body:JSON.stringify({message:'Versão da planilha '+stampFull(),content:b64,branch:SET.branch})});
+    if(r.ok){toast('✓ Versão salva no repositório: '+path);}
+    else{toast('Falha ao versionar ('+r.status+'). Verifique o token/permissões.');}
+  }catch(e){toast('Erro: '+e.message);}
+}
 function toggleMenu(e){e.stopPropagation();$("#expMenu").classList.toggle("open");}
 document.addEventListener("click",()=>$("#expMenu").classList.remove("open"));
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeEdit();closeSettings();}});
