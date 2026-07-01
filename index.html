@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Acompanhamento PROFISCO II</title>
+<style>
+  :root{
+    --navy:#1f3864; --blue:#2e75b6; --light:#eaf1fb; --line:#dfe4ec; --bg:#f5f7fb;
+    --ok:#2e8b57; --run:#2e75b6; --late:#c0392b; --block:#8e44ad; --idle:#8a94a6; --na:#b0b7c3;
+    --ink:#1e2733; --muted:#66707e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg);font-size:14px}
+  header{background:var(--navy);color:#fff;padding:14px 20px;position:sticky;top:0;z-index:20}
+  header .t{font-size:18px;font-weight:700}
+  header .s{font-size:12.5px;opacity:.85;margin-top:2px}
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+  button{cursor:pointer;border:1px solid transparent;border-radius:7px;padding:7px 12px;font-size:13px;font-weight:600}
+  .btn{background:#fff;color:var(--navy)}
+  .btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}
+  .btn.primary{background:var(--blue);color:#fff}
+  .btn:hover{filter:brightness(.97)}
+  .sync{font-size:12px;margin-left:auto;opacity:.9;display:flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:50%;background:#f1c40f}
+  .dot.clean{background:#2ecc71}
+  main{max-width:1280px;margin:0 auto;padding:18px 20px 60px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .kpi .v{font-size:24px;font-weight:800;color:var(--navy)}
+  .kpi .l{font-size:12px;color:var(--muted);margin-top:2px}
+  .prog{height:9px;border-radius:6px;background:#e9edf4;overflow:hidden}
+  .prog>i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),#5aa0e0)}
+  .filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
+  .filters input,.filters select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff}
+  .filters input[type=search]{min-width:240px;flex:1}
+  .wrap{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:auto}
+  table{border-collapse:collapse;width:100%;min-width:900px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--light);color:var(--navy);font-size:12px;position:sticky;top:0;z-index:1}
+  tr:hover td{background:#fafcff}
+  td.id{font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap;font-weight:600}
+  .lvl0 td.prod{font-weight:800}
+  .lvl1 td.prod{font-weight:700}
+  .prod .pt{display:block}
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;color:#fff;font-size:11.5px;font-weight:700;white-space:nowrap}
+  .cellprog{min-width:120px}
+  .cellprog small{color:var(--muted)}
+  .miniprog{height:7px;border-radius:5px;background:#e9edf4;overflow:hidden;margin-top:3px}
+  .miniprog>i{display:block;height:100%;background:var(--blue)}
+  .clip{max-width:340px;color:var(--muted);font-size:12.5px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .rowbtn{background:none;border:none;color:var(--blue);padding:0;font-weight:700}
+  /* modal */
+  .ov{position:fixed;inset:0;background:rgba(20,28,44,.5);display:none;z-index:40;align-items:flex-start;justify-content:center;padding:30px 14px;overflow:auto}
+  .ov.on{display:flex}
+  .modal{background:#fff;border-radius:14px;max-width:760px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  .modal h3{margin:0;padding:16px 20px;border-bottom:1px solid var(--line);color:var(--navy);font-size:16px;display:flex;justify-content:space-between;align-items:center}
+  .modal .body{padding:16px 20px;max-height:70vh;overflow:auto}
+  .fld{margin-bottom:13px}
+  .fld label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:4px}
+  .fld input,.fld select,.fld textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit}
+  .fld textarea{min-height:64px;resize:vertical;white-space:pre-wrap}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+  .modal .foot{padding:13px 20px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;background:#fafcff;border-radius:0 0 14px 14px}
+  .x{background:none;border:none;font-size:20px;color:#fff;cursor:pointer}
+  .hist{border:1px dashed var(--line);border-radius:8px;padding:8px 10px;background:#fafcff;font-size:12px;max-height:140px;overflow:auto}
+  .hist div{padding:3px 0;border-bottom:1px dotted var(--line)}
+  .hist b{color:var(--navy)}
+  .note{font-size:12px;color:var(--muted)}
+  .warn{background:#fff7e6;border:1px solid #f0d48a;color:#7a5b00;padding:8px 10px;border-radius:8px;font-size:12.5px;margin-bottom:10px}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1e2733;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.on{opacity:1}
+  .menu{position:relative;display:inline-block}
+  .menu .items{display:none;position:absolute;right:0;top:110%;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);min-width:190px;z-index:30}
+  .menu .items button{display:block;width:100%;text-align:left;background:none;border:none;border-radius:0;color:var(--ink);padding:9px 12px}
+  .menu .items button:hover{background:var(--light)}
+  .menu.open .items{display:block}
+</style>
+</head>
+<body>
+<header>
+  <div class="t" id="pTitle">Acompanhamento PROFISCO II</div>
+  <div class="s" id="pSub">Carregando…</div>
+  <div class="bar">
+    <button class="btn primary" onclick="githubSave()">⬆ Salvar no GitHub</button>
+    <button class="btn ghost" onclick="githubLoad()">⬇ Carregar do GitHub</button>
+    <button class="btn ghost" onclick="openSettings()">⚙ Configurar GitHub</button>
+    <div class="menu" id="expMenu">
+      <button class="btn ghost" onclick="toggleMenu(event)">Exportar / Importar ▾</button>
+      <div class="items">
+        <button onclick="exportJSON()">Exportar data.json</button>
+        <button onclick="exportCSV()">Exportar CSV</button>
+        <button onclick="document.getElementById('imp').click()">Importar JSON…</button>
+        <button onclick="resetBundled()">Recarregar planilha original</button>
+      </div>
+    </div>
+    <input type="file" id="imp" accept="application/json" style="display:none" onchange="importJSON(this)"/>
+    <div class="sync"><span class="dot" id="syncDot"></span><span id="syncTxt">—</span></div>
+  </div>
+</header>
+
+<main>
+  <div class="kpis" id="kpis"></div>
+  <div class="filters">
+    <input type="search" id="q" placeholder="Buscar por produto, área, processo…" oninput="render()"/>
+    <select id="fSit" onchange="render()"><option value="">Todas as situações</option></select>
+    <select id="fArea" onchange="render()"><option value="">Todas as áreas</option></select>
+    <span class="note" id="count"></span>
+  </div>
+  <div class="wrap">
+    <table>
+      <thead><tr>
+        <th>ID</th><th>Produto</th><th>Áreas</th><th>Situação</th><th>Progresso</th>
+        <th>Próximos passos</th><th></th>
+      </tr></thead>
+      <tbody id="tb"></tbody>
+    </table>
+  </div>
+</main>
+
+<!-- Editor -->
+<div class="ov" id="ovEdit"><div class="modal">
+  <h3><span id="edTitle">Editar</span><button class="x" onclick="closeEdit()">×</button></h3>
+  <div class="body" id="edBody"></div>
+  <div class="foot">
+    <button class="btn" onclick="closeEdit()">Cancelar</button>
+    <button class="btn primary" onclick="saveEdit()">Salvar alterações</button>
+  </div>
+</div></div>
+
+<!-- Settings -->
+<div class="ov" id="ovSet"><div class="modal">
+  <h3><span>Configuração do GitHub</span><button class="x" onclick="closeSettings()">×</button></h3>
+  <div class="body">
+    <div class="warn">O token é gravado apenas neste navegador (localStorage). Use um <b>Fine-grained token</b> com permissão <b>Contents: Read and write</b> restrita a este repositório. Qualquer pessoa com acesso a este navegador poderá usá-lo.</div>
+    <div class="grid2">
+      <div class="fld"><label>Owner (usuário/organização)</label><input id="sOwner" placeholder="ex.: silvaduarte"/></div>
+      <div class="fld"><label>Repositório</label><input id="sRepo" placeholder="ex.: profisco-tracker"/></div>
+      <div class="fld"><label>Branch</label><input id="sBranch" placeholder="main"/></div>
+      <div class="fld"><label>Caminho do arquivo</label><input id="sPath" placeholder="data.json"/></div>
+    </div>
+    <div class="fld"><label>Token (Personal Access Token)</label><input id="sToken" type="password" placeholder="github_pat_…"/></div>
+    <div class="note">Dica: deixe em branco para apenas <i>ler</i> de repositório público; token só é necessário para salvar.</div>
+  </div>
+  <div class="foot">
+    <button class="btn" onclick="testGitHub()">Testar conexão</button>
+    <button class="btn primary" onclick="saveSettings()">Salvar configuração</button>
+  </div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const LS_DATA="profisco_data_v1", LS_SET="profisco_gh_v1";
+let DATA=null, SET=null, DIRTY=false, EDIT_ID=null, lastSha=null;
+
+/* ---------- utils ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),2600);}
+function b64enc(str){return btoa(unescape(encodeURIComponent(str)));}
+function b64dec(b){return decodeURIComponent(escape(atob(b.replace(/\n/g,""))));}
+const statusColor=s=>{s=(s||"").toLowerCase();
+  if(s.startsWith("conclu"))return"var(--ok)"; if(s.includes("andamento"))return"var(--run)";
+  if(s.includes("atras"))return"var(--late)"; if(s.includes("bloque"))return"var(--block)";
+  if(s==="na")return"var(--na)"; return"var(--idle)";};
+function fmtDate(v){if(!v)return"";const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(v);return m?`${m[3]}/${m[2]}/${m[1]}`:String(v);}
+function colType(k){const c=DATA.columns.find(c=>c.key===k);return c?c.type:"text";}
+function fmtVal(k,v){const t=colType(k);
+  if(v===""||v==null)return"";
+  if(t==="date")return fmtDate(v);
+  if(t==="percent")return (typeof v==="number"? (v<=1? (v*100).toFixed(2):v.toFixed(2)):v)+"%";
+  if(t==="percent0")return v+"%";
+  if(t==="money")return typeof v==="number"? v.toLocaleString("pt-BR",{maximumFractionDigits:2}) : v;
+  return v;}
+
+/* ---------- load / persist ---------- */
+async function boot(){
+  SET=JSON.parse(localStorage.getItem(LS_SET)||"null")||{owner:"",repo:"",branch:"main",path:"data.json",token:""};
+  const local=localStorage.getItem(LS_DATA);
+  if(local){ DATA=JSON.parse(local); DIRTY=true; setSync(); afterLoad(); toast("Carregado do rascunho local."); }
+  else { await loadBundled(); }
+}
+async function loadBundled(){
+  try{ const r=await fetch("data.json",{cache:"no-store"}); DATA=await r.json(); DIRTY=false; setSync(); afterLoad(); }
+  catch(e){ $("#pSub").textContent="Falha ao carregar data.json"; toast("Não foi possível carregar data.json"); }
+}
+function persist(){ localStorage.setItem(LS_DATA,JSON.stringify(DATA)); DIRTY=true; setSync(); }
+function setSync(){ const d=$("#syncDot"),t=$("#syncTxt");
+  if(DIRTY){d.classList.remove("clean");t.textContent="alterações não sincronizadas";}
+  else{d.classList.add("clean");t.textContent="sincronizado";} }
+function afterLoad(){
+  $("#pTitle").textContent=DATA.meta.title||"Acompanhamento";
+  $("#pSub").textContent=(DATA.meta.subtitle||"")+"  ·  fonte: "+(DATA.meta.source||"")+"  ·  atualizado: "+(DATA.meta.updated||"");
+  const fs=$("#fSit"); fs.innerHTML='<option value="">Todas as situações</option>'+
+    [...new Set(DATA.rows.map(r=>r.situacao).filter(Boolean))].map(s=>`<option>${esc(s)}</option>`).join("");
+  const areas=[...new Set(DATA.rows.map(r=>r.areas).filter(Boolean))].sort();
+  $("#fArea").innerHTML='<option value="">Todas as áreas</option>'+areas.map(a=>`<option>${esc(a)}</option>`).join("");
+  render();
+}
+
+/* ---------- render ---------- */
+function kpiCounts(){
+  const rows=DATA.rows; const by={};
+  rows.forEach(r=>{const s=r.situacao||"—";by[s]=(by[s]||0)+1;});
+  const avg=Math.round(rows.reduce((a,r)=>a+(+r.progresso||0),0)/(rows.length||1));
+  const somaRS=rows.filter(r=>r.level>0).reduce((a,r)=>a+(typeof r.orc_rs==="number"?r.orc_rs:0),0);
+  return {total:rows.length,by,avg,somaRS};
+}
+function renderKPIs(){
+  const k=kpiCounts();
+  const cards=[
+    {v:k.total,l:"Itens monitorados"},
+    {v:(k.by["Concluído"]||0),l:"Concluídos"},
+    {v:(k.by["Em Andamento"]||0)+(k.by["em Andamento"]||0),l:"Em andamento"},
+    {v:k.avg+"%",l:"Progresso médio"},
+    {v:"R$ "+k.somaRS.toLocaleString("pt-BR"),l:"Estimativa SEFIN (R$)"},
+  ];
+  $("#kpis").innerHTML=cards.map(c=>`<div class="kpi"><div class="v">${esc(c.v)}</div><div class="l">${esc(c.l)}</div>
+     ${c.l==="Progresso médio"?`<div class="prog" style="margin-top:8px"><i style="width:${k.avg}%"></i></div>`:""}</div>`).join("");
+}
+function render(){
+  renderKPIs();
+  const q=($("#q").value||"").toLowerCase(), fs=$("#fSit").value, fa=$("#fArea").value;
+  const rows=DATA.rows.filter(r=>{
+    if(fs&&r.situacao!==fs)return false;
+    if(fa&&r.areas!==fa)return false;
+    if(q){const blob=[r.id,r.produto,r.areas,r.processo_sei,r.proximos,r.lider,r.gerente].join(" ").toLowerCase();if(!blob.includes(q))return false;}
+    return true;
+  });
+  $("#count").textContent=rows.length+" de "+DATA.rows.length+" itens";
+  $("#tb").innerHTML=rows.map(r=>{
+    const pad=8+Math.min(r.level||0,4)*16;
+    const prog=+r.progresso||0;
+    return `<tr class="lvl${r.level||0}">
+      <td class="id">${esc(r.id)}</td>
+      <td class="prod"><span class="pt" style="padding-left:${pad}px">${esc(r.produto)}</span></td>
+      <td>${esc(r.areas)}</td>
+      <td><span class="badge" style="background:${statusColor(r.situacao)}">${esc(r.situacao||"—")}</span></td>
+      <td class="cellprog"><small>${prog}%</small><div class="miniprog"><i style="width:${prog}%"></i></div></td>
+      <td><div class="clip">${esc(r.proximos)}</div></td>
+      <td><button class="rowbtn" onclick="openEdit('${esc(r.id)}')">Abrir ▸</button></td>
+    </tr>`;}).join("");
+}
+
+/* ---------- editor ---------- */
+function openEdit(id){
+  EDIT_ID=id; const r=DATA.rows.find(x=>x.id===id); if(!r)return;
+  $("#edTitle").textContent=(r.id?r.id+" — ":"")+(r.produto||"Item");
+  const long=new Set(["produto","processo_sei","proximos","lider","gerente","sgdi_obs"]);
+  let html="";
+  DATA.columns.forEach(c=>{
+    if(c.key==="id")return;
+    const v=r[c.key]==null?"":r[c.key];
+    let inp;
+    if(c.type==="status"){inp=`<select data-k="${c.key}">`+DATA.statusOptions.map(o=>`<option ${o===v?"selected":""}>${esc(o)}</option>`).join("")+`</select>`;}
+    else if(c.key==="sgdi"){inp=`<select data-k="sgdi">`+(DATA.sgdiOptions||["","Sim","Não"]).map(o=>`<option ${o===v?"selected":""}>${esc(o)}</option>`).join("")+`</select>`;}
+    else if(c.type==="percent0"){inp=`<input type="number" min="0" max="100" data-k="${c.key}" value="${esc(v)}"/>`;}
+    else if(c.type==="date"){inp=`<input type="date" data-k="${c.key}" value="${/^\d{4}-\d{2}-\d{2}$/.test(v)?v:""}"/>`;}
+    else if(long.has(c.key)){inp=`<textarea data-k="${c.key}">${esc(v)}</textarea>`;}
+    else{inp=`<input type="text" data-k="${c.key}" value="${esc(v)}"/>`;}
+    html+=`<div class="fld"><label>${esc(c.label)}</label>${inp}</div>`;
+  });
+  // registrar atualização + histórico
+  html+=`<div class="fld"><label>Registrar atualização (adiciona ao histórico com data)</label>
+     <textarea id="edNote" placeholder="Ex.: Edital ajustado conforme GTSIAFI; aguardando publicação."></textarea></div>`;
+  const hist=(r._history||[]);
+  html+=`<div class="fld"><label>Histórico</label><div class="hist" id="edHist">${
+     hist.length? hist.slice().reverse().map(h=>`<div><b>${esc(h.ts)}</b> — ${esc(h.field||"nota")}${h.note?": "+esc(h.note):(h.old!==undefined?`: "${esc(h.old)}" → "${esc(h.new)}"`:"")}</div>`).join("")
+     : '<span class="note">Sem registros ainda.</span>'}</div></div>`;
+  $("#edBody").innerHTML=html;
+  $("#ovEdit").classList.add("on");
+}
+function closeEdit(){$("#ovEdit").classList.remove("on");EDIT_ID=null;}
+function saveEdit(){
+  const r=DATA.rows.find(x=>x.id===EDIT_ID); if(!r)return;
+  const ts=new Date().toLocaleString("pt-BR");
+  r._history=r._history||[];
+  $("#edBody").querySelectorAll("[data-k]").forEach(el=>{
+    const k=el.getAttribute("data-k"); let nv=el.value;
+    if(colType(k)==="percent0")nv=Math.max(0,Math.min(100,+nv||0));
+    const ov=r[k]==null?"":r[k];
+    if(String(ov)!==String(nv)){ r._history.push({ts,field:k,old:ov,new:nv}); r[k]=nv; }
+  });
+  const note=$("#edNote").value.trim();
+  if(note)r._history.push({ts,field:"Atualização",note});
+  persist(); render(); closeEdit(); toast("Alterações salvas localmente. Use ⬆ para publicar no GitHub.");
+}
+
+/* ---------- settings ---------- */
+function openSettings(){["Owner","Repo","Branch","Path","Token"].forEach(f=>$("#s"+f).value=SET[f.toLowerCase()]||(f==="Branch"?"main":f==="Path"?"data.json":""));$("#ovSet").classList.add("on");}
+function closeSettings(){$("#ovSet").classList.remove("on");}
+function saveSettings(){SET={owner:$("#sOwner").value.trim(),repo:$("#sRepo").value.trim(),branch:($("#sBranch").value.trim()||"main"),path:($("#sPath").value.trim()||"data.json"),token:$("#sToken").value.trim()};localStorage.setItem(LS_SET,JSON.stringify(SET));closeSettings();toast("Configuração salva.");}
+function ghHeaders(){const h={"Accept":"application/vnd.github+json"};if(SET.token)h["Authorization"]="Bearer "+SET.token;return h;}
+function ghUrl(){return `https://api.github.com/repos/${SET.owner}/${SET.repo}/contents/${SET.path}`;}
+async function testGitHub(){
+  const s={owner:$("#sOwner").value.trim(),repo:$("#sRepo").value.trim(),branch:$("#sBranch").value.trim()||"main",path:$("#sPath").value.trim()||"data.json",token:$("#sToken").value.trim()};
+  if(!s.owner||!s.repo)return toast("Preencha owner e repositório.");
+  const h={"Accept":"application/vnd.github+json"};if(s.token)h["Authorization"]="Bearer "+s.token;
+  try{const r=await fetch(`https://api.github.com/repos/${s.owner}/${s.repo}/contents/${s.path}?ref=${s.branch}`,{headers:h});
+    if(r.ok)toast("✓ Conexão OK — arquivo encontrado.");
+    else if(r.status===404)toast("Repo acessível, mas "+s.path+" ainda não existe (será criado ao salvar).");
+    else toast("Falha ("+r.status+"). Verifique dados/token.");}
+  catch(e){toast("Erro de rede: "+e.message);}
+}
+async function githubLoad(){
+  if(!SET.owner||!SET.repo)return openSettings();
+  try{const r=await fetch(ghUrl()+"?ref="+SET.branch,{headers:ghHeaders(),cache:"no-store"});
+    if(!r.ok){toast("Não foi possível ler do GitHub ("+r.status+")");return;}
+    const j=await r.json(); lastSha=j.sha; DATA=JSON.parse(b64dec(j.content)); DIRTY=false;
+    localStorage.setItem(LS_DATA,JSON.stringify(DATA)); DIRTY=false; setSync(); afterLoad(); toast("Carregado do GitHub.");}
+  catch(e){toast("Erro: "+e.message);}
+}
+async function githubSave(){
+  if(!SET.owner||!SET.repo)return openSettings();
+  if(!SET.token){toast("Configure um token com permissão de escrita para salvar.");return openSettings();}
+  DATA.meta.updated=new Date().toISOString().slice(0,10);
+  try{
+    // pega o sha atual
+    let sha=lastSha;
+    const g=await fetch(ghUrl()+"?ref="+SET.branch,{headers:ghHeaders(),cache:"no-store"});
+    if(g.ok){sha=(await g.json()).sha;}
+    const body={message:"Atualiza acompanhamento ("+new Date().toLocaleString("pt-BR")+")",
+      content:b64enc(JSON.stringify(DATA,null,2)),branch:SET.branch};
+    if(sha)body.sha=sha;
+    const r=await fetch(ghUrl(),{method:"PUT",headers:ghHeaders(),body:JSON.stringify(body)});
+    if(r.ok){const j=await r.json();lastSha=j.content.sha;DIRTY=false;setSync();toast("✓ Publicado no GitHub.");}
+    else{const t=await r.text();toast("Falha ao salvar ("+r.status+"). "+(r.status===401||r.status===403?"Verifique o token/permissões.":""));console.error(t);}
+  }catch(e){toast("Erro: "+e.message);}
+}
+
+/* ---------- export/import ---------- */
+function download(name,txt,type){const b=new Blob([txt],{type:type||"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href);}
+function exportJSON(){download("data.json",JSON.stringify(DATA,null,2));}
+function exportCSV(){
+  const cols=DATA.columns.map(c=>c.key);
+  const head=DATA.columns.map(c=>c.label);
+  const q=s=>'"'+String(s==null?"":s).replace(/"/g,'""').replace(/\n/g," ")+'"';
+  const lines=[head.map(q).join(",")];
+  DATA.rows.forEach(r=>lines.push(cols.map(k=>q(r[k])).join(",")));
+  download("acompanhamento.csv","﻿"+lines.join("\r\n"),"text/csv");
+}
+function importJSON(inp){const f=inp.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{DATA=JSON.parse(rd.result);persist();afterLoad();toast("JSON importado.");}catch(e){toast("JSON inválido.");}};rd.readAsText(f);inp.value="";}
+async function resetBundled(){if(!confirm("Descartar rascunho local e recarregar o data.json original?"))return;localStorage.removeItem(LS_DATA);await loadBundled();toast("Recarregado do arquivo original.");}
+function toggleMenu(e){e.stopPropagation();$("#expMenu").classList.toggle("open");}
+document.addEventListener("click",()=>$("#expMenu").classList.remove("open"));
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeEdit();closeSettings();}});
+
+boot();
+</script>
+</body>
+</html>
