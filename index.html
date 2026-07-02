@@ -40,6 +40,14 @@
   .filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
   .filters input,.filters select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff}
   .filters input[type=search]{min-width:220px;flex:1}
+  .areamenu{position:relative}
+  .fbtn{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff;color:var(--ink);font-weight:500;cursor:pointer}
+  .areamenu .items{display:none;position:absolute;left:0;top:110%;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);min-width:210px;z-index:31;padding:6px;max-height:320px;overflow:auto}
+  .areamenu.open .items{display:block}
+  .areamenu .items label{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--ink)}
+  .areamenu .items label:hover{background:var(--light)}
+  .areamenu .items input{width:auto;margin:0}
+  .areamenu .items .sep{border-top:1px solid var(--line);margin:4px 0}
   .lnk{background:none;border:none;color:var(--blue);font-weight:600;font-size:12px;padding:4px 6px}
   .wrap{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:auto}
   table{border-collapse:collapse;width:100%;min-width:960px}
@@ -87,6 +95,10 @@
   .box.danger{border-color:#f0b3ab;background:#fdf3f2}
   .chk{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;margin:8px 0}
   .chk input{width:auto;margin-top:2px}
+  .etab{width:100%;border-collapse:collapse;font-size:12.5px}
+  .etab th,.etab td{border:1px solid var(--line);padding:4px 6px;vertical-align:middle}
+  .etab th{background:var(--light);color:var(--navy);font-size:11px}
+  .ei{width:100%;padding:5px 6px;border:1px solid var(--line);border-radius:6px;font-size:12.5px;font-family:inherit}
   .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1e2733;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none}
   .toast.on{opacity:1}
   .menu{position:relative;display:inline-block}
@@ -127,7 +139,10 @@
   <div class="filters">
     <input type="search" id="q" placeholder="Buscar por produto, área, processo…" oninput="render()"/>
     <select id="fSit" onchange="render()"><option value="">Todas as situações</option></select>
-    <select id="fArea" onchange="render()"><option value="">Todas as áreas</option></select>
+    <div class="areamenu" id="areaMenu">
+      <button class="fbtn" type="button" onclick="toggleAreaMenu(event)"><span id="areaLabel">Todas as áreas</span> ▾</button>
+      <div class="items" id="areaItems" onclick="event.stopPropagation()"></div>
+    </div>
     <label class="note" style="display:flex;gap:5px;align-items:center"><input type="checkbox" id="showInact" onchange="render()"/> mostrar inativos</label>
     <button class="lnk" onclick="expandAll(true)">Expandir tudo</button>
     <button class="lnk" onclick="expandAll(false)">Recolher tudo</button>
@@ -178,6 +193,10 @@
 const LS_DATA="profisco_data_v1", LS_SET="profisco_gh_v1";
 let DATA=null, SET=null, DIRTY=false, EDIT_ID=null, lastSha=null;
 let ROWBYID={}, CHILDREN={}, EXPANDED=new Set();
+const AREAS_LIST=["SUOP","SUPLAN","SUTES","SUCON","SEST","SERT","PGDF","INAS","SGE","CGDF"];
+let selAreas=new Set();
+const DEFAULT_ETAPAS=["Desenvolvimento do TAP","Validação do TAP","Envio de processo SEI do TAP","Visitas técnicas","Confecção da especificação técnica","Precisa de Termo de Referência"];
+let EDIT_ETAPAS=[];
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -234,16 +253,27 @@ function afterLoad(){
   $("#pSub").textContent=(DATA.meta.subtitle||"")+"  ·  fonte: "+(DATA.meta.source||"")+"  ·  atualizado: "+(DATA.meta.updated||"");
   $("#fSit").innerHTML='<option value="">Todas as situações</option>'+
     [...new Set(DATA.rows.map(r=>r.situacao).filter(Boolean))].map(s=>`<option>${esc(s)}</option>`).join("");
-  const areas=[...new Set(DATA.rows.map(r=>r.areas).filter(Boolean))].sort();
-  $("#fArea").innerHTML='<option value="">Todas as áreas</option>'+areas.map(a=>`<option>${esc(a)}</option>`).join("");
+  buildAreaMenu();
   render();
 }
 
-function anyFilter(){ return ($("#q").value||"").trim()||$("#fSit").value||$("#fArea").value; }
+function anyFilter(){ return ($("#q").value||"").trim()||$("#fSit").value||selAreas.size; }
+function rowAreas(r){return String(r.areas||"").split(/[^A-Za-zÀ-ɏ]+/).filter(Boolean).map(s=>s.toUpperCase());}
+function areaMatch(r){if(!selAreas.size)return true;const toks=rowAreas(r);for(const a of selAreas){if(toks.includes(a))return true;}return false;}
+function buildAreaMenu(){
+  const box=$("#areaItems");
+  box.innerHTML='<label><input type="checkbox" id="areaAll" '+(selAreas.size===0?"checked":"")+' onclick="areaAll(event)"> (Todas)</label><div class="sep"></div>'
+    +AREAS_LIST.map(a=>`<label><input type="checkbox" value="${a}" ${selAreas.has(a)?"checked":""} onclick="areaToggle('${a}',event)"> ${a}</label>`).join("");
+  updateAreaLabel();
+}
+function updateAreaLabel(){ $("#areaLabel").textContent = selAreas.size===0?"Todas as áreas":(selAreas.size===1?[...selAreas][0]:selAreas.size+" áreas"); }
+function toggleAreaMenu(e){ e.stopPropagation(); $("#areaMenu").classList.toggle("open"); }
+function areaAll(e){ if(e)e.stopPropagation(); selAreas.clear(); buildAreaMenu(); render(); }
+function areaToggle(a,e){ if(e)e.stopPropagation(); if(selAreas.has(a))selAreas.delete(a); else selAreas.add(a); const all=$("#areaAll"); if(all)all.checked=selAreas.size===0; updateAreaLabel(); render(); }
 function matchRow(r){
-  const q=($("#q").value||"").toLowerCase(), fs=$("#fSit").value, fa=$("#fArea").value;
+  const q=($("#q").value||"").toLowerCase(), fs=$("#fSit").value;
   if(fs&&r.situacao!==fs)return false;
-  if(fa&&r.areas!==fa)return false;
+  if(!areaMatch(r))return false;
   if(q){const blob=[r.id,r.produto,r.areas,r.processo_sei,r.proximos].join(" ").toLowerCase();if(!blob.includes(q))return false;}
   return true;
 }
@@ -310,6 +340,7 @@ function expandAll(on){ EXPANDED=on?new Set(DATA.rows.filter(hasKids).map(r=>r.i
 
 function openEdit(id){
   EDIT_ID=id; const r=ROWBYID[id]; if(!r)return;
+  EDIT_ETAPAS=Array.isArray(r.etapas)?r.etapas.map(e=>({...e})):DEFAULT_ETAPAS.map((n,i)=>({num:String(i+1),nome:n,pct:"",desc:"",feito:false}));
   $("#edTitle").textContent=(r.id?r.id+" — ":"")+(r.produto||"Item");
   const long=new Set(["produto","processo_sei","proximos","lider","gerente","sgdi_obs"]);
   let html="";
@@ -326,6 +357,7 @@ function openEdit(id){
     let hint=""; if(c.key==="progresso"&&hasKids(r))hint=`<div class="note">Produto-mãe: o progresso <b>qualitativo</b> (${effProgress(r)}%) vem dos subitens; este campo é a <b>execução</b> própria.</div>`;
     html+=`<div class="fld"><label>${esc(c.label)}</label>${inp}${hint}</div>`;
   });
+  html+=`<div class="fld"><label>Etapas intermediárias</label><div id="edEtapas"></div></div>`;
   html+=`<div class="fld"><label>Registrar atualização (adiciona ao histórico com data)</label>
      <textarea id="edNote" placeholder="Ex.: Edital ajustado; aguardando publicação."></textarea></div>`;
   html+=`<div class="fld"><label>Situação do produto no cálculo</label><div id="edAtivo"></div></div>`;
@@ -335,6 +367,7 @@ function openEdit(id){
      : '<span class="note">Sem registros ainda.</span>'}</div></div>`;
   $("#edBody").innerHTML=html;
   renderAtivoBox();
+  renderEtapas();
   $("#ovEdit").classList.add("on");
 }
 function renderAtivoBox(){
@@ -382,6 +415,32 @@ function saveEdit(){
   persist(); render(); closeEdit(); toast("Alterações salvas localmente. Use ⬆ para publicar no GitHub.");
 }
 
+function etapaCommit(){ const r=ROWBYID[EDIT_ID]; if(!r)return; r.etapas=EDIT_ETAPAS.map(e=>({...e})); persist(); }
+function renderEtapas(){
+  const box=$("#edEtapas"); if(!box)return;
+  const rows=EDIT_ETAPAS.map((e,i)=>`<tr>
+    <td><input class="ei" style="width:52px" value="${esc(e.num)}" oninput="etapaSet(${i},'num',this.value)"/></td>
+    <td><input class="ei" value="${esc(e.nome)}" oninput="etapaSet(${i},'nome',this.value)"/></td>
+    <td><input class="ei" type="number" min="0" max="100" style="width:64px" value="${esc(e.pct)}" oninput="etapaSet(${i},'pct',this.value)" placeholder="opc."/></td>
+    <td><input class="ei" value="${esc(e.desc)}" oninput="etapaSet(${i},'desc',this.value)"/></td>
+    <td style="text-align:center"><input type="checkbox" ${e.feito?"checked":""} onchange="etapaSet(${i},'feito',this.checked)"/></td>
+    <td style="text-align:center"><button class="rowbtn" style="color:var(--danger)" onclick="etapaDel(${i})">remover</button></td>
+  </tr>`).join("");
+  box.innerHTML=`<table class="etab"><thead><tr><th>Nº</th><th>Nome</th><th>% contrib.</th><th>Descrição</th><th>Concl.</th><th></th></tr></thead>
+    <tbody>${rows||'<tr><td colspan="6" class="note">Nenhuma etapa. Use os botões abaixo.</td></tr>'}</tbody></table>
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn" onclick="etapaAdd()">+ Adicionar etapa</button>
+      <button class="btn" onclick="etapaDefaults()">Restaurar etapas padrão</button>
+      <span class="note" id="etSum"></span></div>
+    <div style="margin-top:6px"><button class="lnk" onclick="etapasToProgress()">Usar contribuição concluída como % de execução deste item</button></div>`;
+  updateEtapaSummary();
+}
+function etapaSet(i,f,v){ if(!EDIT_ETAPAS[i])return; if(f==="pct")v=(v===""?"":Math.max(0,Math.min(100,+v||0))); EDIT_ETAPAS[i][f]=v; etapaCommit(); updateEtapaSummary(); }
+function etapaAdd(){ EDIT_ETAPAS.push({num:String(EDIT_ETAPAS.length+1),nome:"",pct:"",desc:"",feito:false}); etapaCommit(); renderEtapas(); }
+function etapaDel(i){ EDIT_ETAPAS.splice(i,1); etapaCommit(); renderEtapas(); }
+function etapaDefaults(){ EDIT_ETAPAS=DEFAULT_ETAPAS.map((n,i)=>({num:String(i+1),nome:n,pct:"",desc:"",feito:false})); etapaCommit(); renderEtapas(); }
+function updateEtapaSummary(){ const done=EDIT_ETAPAS.filter(e=>e.feito).length; const somaC=EDIT_ETAPAS.filter(e=>e.feito).reduce((a,e)=>a+(+e.pct||0),0); const el=$("#etSum"); if(el)el.textContent=`Concluídas: ${done}/${EDIT_ETAPAS.length} · Soma de contribuição concluída: ${somaC}%`; }
+function etapasToProgress(){ const r=ROWBYID[EDIT_ID]; if(!r)return; const somaC=EDIT_ETAPAS.filter(e=>e.feito).reduce((a,e)=>a+(+e.pct||0),0); const v=Math.max(0,Math.min(100,Math.round(somaC))); (r._history=r._history||[]).push({ts:new Date().toLocaleString("pt-BR"),field:"progresso",old:r.progresso,new:v}); r.progresso=v; etapaCommit(); render(); const inp=$("#edBody").querySelector('[data-k="progresso"]'); if(inp)inp.value=v; toast("Execução deste item ajustada para "+v+"%."); }
 function openSettings(){["Owner","Repo","Branch","Path","Token"].forEach(f=>$("#s"+f).value=SET[f.toLowerCase()]||(f==="Branch"?"main":f==="Path"?"data.json":""));$("#ovSet").classList.add("on");}
 function closeSettings(){$("#ovSet").classList.remove("on");}
 function saveSettings(){SET={owner:$("#sOwner").value.trim(),repo:$("#sRepo").value.trim(),branch:($("#sBranch").value.trim()||"main"),path:($("#sPath").value.trim()||"data.json"),token:$("#sToken").value.trim()};localStorage.setItem(LS_SET,JSON.stringify(SET));closeSettings();toast("Configuração salva.");}
@@ -424,19 +483,20 @@ async function githubSave(){
 
 function buildAOA(){
   const keys=DATA.columns.map(c=>c.key);
-  const header=[...DATA.columns.map(c=>c.label),"Ativo","Progresso subitens (%)"];
+  const header=[...DATA.columns.map(c=>c.label),"Ativo","Progresso subitens (%)","Etapas (concl./total)"];
   const aoa=[header];
   DATA.rows.forEach(r=>{
     const base=keys.map(k=>{let v=r[k];return v==null?"":v;});
     base.push(r.ativo===false?"Não":"Sim");
     base.push(hasKids(r)?effProgress(r):"");
+    base.push(Array.isArray(r.etapas)&&r.etapas.length?`${r.etapas.filter(e=>e.feito).length}/${r.etapas.length}`:"");
     aoa.push(base);
   });
   return aoa;
 }
 function buildWorkbook(){
   const ws=XLSX.utils.aoa_to_sheet(buildAOA());
-  ws['!cols']=[...DATA.columns.map(c=>({wch:c.type==='longtext'?42:(c.type==='title'?38:16)})),{wch:8},{wch:20}];
+  ws['!cols']=[...DATA.columns.map(c=>({wch:c.type==='longtext'?42:(c.type==='title'?38:16)})),{wch:8},{wch:20},{wch:16}];
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Visão Geral"); return wb;
 }
 function stampDay(){const d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
@@ -472,7 +532,7 @@ function exportCSV(){
 function importJSON(inp){const f=inp.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{DATA=JSON.parse(rd.result);persist();afterLoad();toast("JSON importado.");}catch(e){toast("JSON inválido.");}};rd.readAsText(f);inp.value="";}
 async function resetBundled(){if(!confirm("Descartar rascunho local e recarregar o data.json original?"))return;localStorage.removeItem(LS_DATA);await loadBundled();toast("Recarregado do arquivo original.");}
 function toggleMenu(e){e.stopPropagation();$("#expMenu").classList.toggle("open");}
-document.addEventListener("click",()=>$("#expMenu").classList.remove("open"));
+document.addEventListener("click",()=>{$("#expMenu").classList.remove("open");const am=$("#areaMenu");if(am)am.classList.remove("open");});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeEdit();closeSettings();}});
 
 boot();
