@@ -99,6 +99,27 @@
   .etab th,.etab td{border:1px solid var(--line);padding:4px 6px;vertical-align:middle}
   .etab th{background:var(--light);color:var(--navy);font-size:11px}
   .ei{width:100%;padding:5px 6px;border:1px solid var(--line);border-radius:6px;font-size:12.5px;font-family:inherit}
+  .tabs{display:flex;gap:6px;margin-top:12px}
+  .tab{background:rgba(255,255,255,.15);color:#fff;border:none;padding:8px 16px;border-radius:8px 8px 0 0;font-weight:700;cursor:pointer}
+  .tab.active{background:#fff;color:var(--navy)}
+  .repbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .repcard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+  .rsec{background:var(--navy);color:#fff;font-weight:700;padding:6px 12px;border-radius:6px;margin:0 0 10px;font-size:14px}
+  .rgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .rgrid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+  .chartbox{position:relative;height:230px}
+  .hcard{display:flex;gap:12px;flex-wrap:wrap}
+  .hcard .hc{flex:1;min-width:170px;background:var(--light);border-radius:10px;padding:10px 12px}
+  .hcard .hc input,.hcard .hc select{width:100%;margin-top:4px}
+  .rt{width:100%;border-collapse:collapse;font-size:12.5px}
+  .rt th,.rt td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+  .rt th{background:var(--light);color:var(--navy)}
+  @media print{
+    header,.filters,.repbar{display:none!important}
+    body{background:#fff}
+    main{max-width:none;padding:0}
+    .repcard{break-inside:avoid;box-shadow:none}
+  }
   .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1e2733;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none}
   .toast.on{opacity:1}
   .menu{position:relative;display:inline-block}
@@ -108,6 +129,7 @@
   .menu.open .items{display:block}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 <header>
@@ -132,9 +154,14 @@
     <input type="file" id="imp" accept="application/json" style="display:none" onchange="importJSON(this)"/>
     <div class="sync"><span class="dot" id="syncDot"></span><span id="syncTxt">—</span></div>
   </div>
+  <div class="tabs">
+    <button class="tab active" id="tabTrack" onclick="showView('track')">Acompanhamento</button>
+    <button class="tab" id="tabReports" onclick="showView('reports')">Relatórios</button>
+  </div>
 </header>
 
 <main>
+  <div id="viewTrack">
   <div class="kpis" id="kpis"></div>
   <div class="filters">
     <input type="search" id="q" placeholder="Buscar por produto, área, processo…" oninput="render()"/>
@@ -156,6 +183,71 @@
       </tr></thead>
       <tbody id="tb"></tbody>
     </table>
+  </div>
+  </div>
+  <div id="viewReports" style="display:none">
+    <div class="repbar">
+      <label class="note" style="font-weight:700">Relatório:</label>
+      <select id="reportSel" onchange="renderReports()" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px">
+        <option value="status">Status do Projeto</option>
+        <option value="exec">Resumo Executivo / Plano</option>
+      </select>
+      <button class="btn primary" onclick="window.print()">Imprimir / PDF</button>
+      <span class="note">Gráficos e valores vêm dos dados do acompanhamento; os textos são editáveis e salvam junto (⬆ Salvar no GitHub).</span>
+    </div>
+
+    <div id="repStatus">
+      <div class="repcard">
+        <div class="hcard">
+          <div class="hc"><div class="note">Projeto</div><div style="font-weight:800" id="rsTitle"></div></div>
+          <div class="hc"><div class="note">Data do status</div><input type="date" id="rsDate" onchange="repField('statusDate',this.value)"/></div>
+          <div class="hc"><div class="note">Status geral</div><select id="rsOverall" onchange="repField('overall',this.value);renderReports()"><option>Verde</option><option>Amarelo</option><option>Vermelho</option></select></div>
+        </div>
+        <div style="margin-top:10px"><div class="note">Comentário do projeto</div><textarea id="rsComment" oninput="repField('commentary',this.value)"></textarea></div>
+      </div>
+      <div class="repcard"><div class="rsec">Cronograma — produtos principais</div>
+        <table class="rt"><thead><tr><th>ID</th><th>Produto</th><th>Início</th><th>Conclusão</th><th>Situação</th><th>Progresso</th></tr></thead>
+        <tbody id="rsSchedule"></tbody></table></div>
+      <div class="rgrid">
+        <div class="repcard"><div class="rsec">Tarefas por situação</div><div class="chartbox"><canvas id="chTasks"></canvas></div></div>
+        <div class="repcard"><div class="rsec">Orçamento por produto (R$)</div><div class="chartbox"><canvas id="chBudget"></canvas></div></div>
+      </div>
+      <div class="rgrid3">
+        <div class="repcard"><div class="rsec">Riscos</div><div class="chartbox" style="height:180px"><canvas id="chRisks"></canvas></div>
+          <div class="note" style="margin-top:6px">Alto <input class="ei" style="width:48px" id="rk_Alto" type="number" onchange="repCount('risks','Alto',this.value)"/>
+          Médio <input class="ei" style="width:48px" id="rk_Medio" type="number" onchange="repCount('risks','Médio',this.value)"/>
+          Baixo <input class="ei" style="width:48px" id="rk_Baixo" type="number" onchange="repCount('risks','Baixo',this.value)"/></div></div>
+        <div class="repcard"><div class="rsec">Issues</div><div class="chartbox" style="height:180px"><canvas id="chIssues"></canvas></div>
+          <div class="note" style="margin-top:6px">Alto <input class="ei" style="width:48px" id="is_Alto" type="number" onchange="repCount('issues','Alto',this.value)"/>
+          Médio <input class="ei" style="width:48px" id="is_Medio" type="number" onchange="repCount('issues','Médio',this.value)"/>
+          Baixo <input class="ei" style="width:48px" id="is_Baixo" type="number" onchange="repCount('issues','Baixo',this.value)"/></div></div>
+        <div class="repcard"><div class="rsec">Decisões / Ações / Pendências</div><div class="chartbox" style="height:180px"><canvas id="chPend"></canvas></div>
+          <div class="note" style="margin-top:6px">Decisões <input class="ei" style="width:48px" id="pd_Dec" type="number" onchange="repCount('pend','Decisões',this.value)"/>
+          Ações <input class="ei" style="width:48px" id="pd_Aco" type="number" onchange="repCount('pend','Ações',this.value)"/>
+          Mudanças <input class="ei" style="width:48px" id="pd_Mud" type="number" onchange="repCount('pend','Mudanças',this.value)"/></div></div>
+      </div>
+    </div>
+
+    <div id="repExec" style="display:none">
+      <div class="repcard"><div style="font-size:18px;font-weight:800;color:var(--navy)" id="reTitle"></div></div>
+      <div class="rgrid">
+        <div class="repcard"><div class="rsec">Objetivos-chave</div><textarea id="reObjectives" oninput="repField('objectives',this.value)" placeholder="Um objetivo por linha…"></textarea></div>
+        <div class="repcard"><div class="rsec">Riscos potenciais</div><textarea id="rePotential" oninput="repField('potentialRisks',this.value)"></textarea></div>
+      </div>
+      <div class="repcard"><div class="rsec">Análise de Fatores</div>
+        <table class="rt"><thead><tr><th style="width:32%">Fator</th><th>Comentários</th><th style="width:36px"></th></tr></thead><tbody id="reFactors"></tbody></table>
+        <button class="btn" style="margin-top:8px" onclick="factorAdd()">+ Fator</button></div>
+      <div class="repcard"><div class="rsec">Objetivos & Indicadores (KPIs)</div>
+        <table class="rt"><thead><tr><th style="width:40%">Objetivo</th><th>Medida de desempenho</th><th style="width:36px"></th></tr></thead><tbody id="reKpis"></tbody></table>
+        <button class="btn" style="margin-top:8px" onclick="kpiAdd()">+ KPI</button></div>
+      <div class="rgrid">
+        <div class="repcard"><div class="rsec">Projeção de Custo (por produto)</div><div class="chartbox"><canvas id="chCost"></canvas></div></div>
+        <div class="repcard"><div class="rsec">Orçamento (R$)</div><table class="rt"><thead><tr><th>Produto</th><th style="text-align:right">Valor</th></tr></thead><tbody id="reBudget"></tbody></table></div>
+      </div>
+      <div class="repcard"><div class="rsec">Plano de Ação — próximos passos por item</div>
+        <table class="rt"><thead><tr><th style="width:70px">ID</th><th style="width:30%">Produto</th><th>Próximos passos</th></tr></thead><tbody id="reActionAuto"></tbody></table>
+        <div style="margin-top:8px"><div class="note">Notas adicionais</div><textarea id="reAction" oninput="repField('actionText',this.value)"></textarea></div></div>
+    </div>
   </div>
 </main>
 
@@ -248,6 +340,7 @@ function setSync(){ const d=$("#syncDot"),t=$("#syncTxt");
 function afterLoad(){
   DATA.rows.forEach(r=>{ if(r.ativo===undefined)r.ativo=true; if(r.level===undefined)r.level=String(r.id).split(".").length-1; });
   rebuildTree();
+  initReport();
   EXPANDED=new Set(DATA.rows.filter(r=>r.level===0).map(r=>r.id));
   $("#pTitle").textContent=DATA.meta.title||"Acompanhamento";
   $("#pSub").textContent=(DATA.meta.subtitle||"")+"  ·  fonte: "+(DATA.meta.source||"")+"  ·  atualizado: "+(DATA.meta.updated||"");
@@ -534,6 +627,114 @@ async function resetBundled(){if(!confirm("Descartar rascunho local e recarregar
 function toggleMenu(e){e.stopPropagation();$("#expMenu").classList.toggle("open");}
 document.addEventListener("click",()=>{$("#expMenu").classList.remove("open");const am=$("#areaMenu");if(am)am.classList.remove("open");});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeEdit();closeSettings();}});
+
+/* ---------- Relatórios ---------- */
+let CHARTS={};
+const PALETTE=["#1f3864","#2e75b6","#5aa0e0","#8fbce6","#a9d18e","#c00000","#ed7d31","#7f7f7f","#41236d","#2e8b57"];
+function initReport(){
+  const R=DATA.meta.report=DATA.meta.report||{};
+  R.statusDate=R.statusDate||new Date().toISOString().slice(0,10);
+  R.overall=R.overall||"Amarelo";
+  if(R.commentary===undefined)R.commentary="";
+  R.risks=R.risks||{"Alto":0,"Médio":0,"Baixo":0};
+  R.issues=R.issues||{"Alto":0,"Médio":0,"Baixo":0};
+  R.pend=R.pend||{"Decisões":0,"Ações":0,"Mudanças":0};
+  if(R.objectives===undefined)R.objectives="";
+  if(R.potentialRisks===undefined)R.potentialRisks="";
+  if(R.actionText===undefined)R.actionText="";
+  if(!Array.isArray(R.factors))R.factors=[{fator:"Execução orçamentária",comentario:""},{fator:"Prazos (TAP/Editais)",comentario:""},{fator:"Riscos",comentario:""}];
+  if(!Array.isArray(R.kpis))R.kpis=[{obj:"",kpi:""}];
+}
+function showView(v){
+  const t=v==="reports";
+  $("#viewTrack").style.display=t?"none":"block";
+  $("#viewReports").style.display=t?"block":"none";
+  $("#tabTrack").classList.toggle("active",!t);
+  $("#tabReports").classList.toggle("active",t);
+  if(t)renderReports(); else destroyCharts();
+}
+function repField(k,v){ DATA.meta.report[k]=v; persist(); }
+function repCount(group,key,v){ DATA.meta.report[group][key]=Math.max(0,+v||0); persist(); renderReports(); }
+function destroyCharts(){ Object.values(CHARTS).forEach(c=>{try{c.destroy();}catch(e){}}); CHARTS={}; }
+function mkChart(id,type,labels,data,colors,extra){
+  const el=document.getElementById(id); if(!el||typeof Chart==="undefined")return;
+  const opts={responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:12,font:{size:11}}}}};
+  if(type==="bar"){opts.plugins.legend.display=false;opts.scales={y:{beginAtZero:true}};}
+  if(type==="doughnut")opts.cutout="58%";
+  if(extra)Object.assign(opts,extra);
+  CHARTS[id]=new Chart(el,{type,data:{labels,datasets:[{data,backgroundColor:colors}]},options:opts});
+}
+function budgetByProduct(){
+  const out=[];
+  DATA.rows.filter(r=>r.level===1&&isActive(r)).forEach(p=>{
+    const fam=DATA.rows.filter(r=>r.id===p.id||String(r.id).startsWith(p.id+"."));
+    let s=fam.reduce((a,r)=>a+(typeof r.orc_rs==="number"?r.orc_rs:0),0);
+    out.push({id:p.id,nome:p.produto,valor:s});
+  });
+  return out.filter(x=>x.valor>0);
+}
+function situacaoCounts(){
+  const active=DATA.rows.filter(r=>isActive(r)&&!hasKids(r));
+  const m={"Concluído":0,"Em Andamento":0,"Não iniciado":0,"Atrasado":0,"Bloqueado":0};
+  active.forEach(r=>{const s=(r.situacao||"").toLowerCase();
+    if(s.startsWith("conclu"))m["Concluído"]++; else if(s.includes("andamento"))m["Em Andamento"]++;
+    else if(s.includes("atras"))m["Atrasado"]++; else if(s.includes("bloque"))m["Bloqueado"]++; else m["Não iniciado"]++;});
+  return m;
+}
+function renderReports(){
+  if(!DATA)return; initReport();
+  const which=$("#reportSel").value;
+  $("#repStatus").style.display=which==="status"?"block":"none";
+  $("#repExec").style.display=which==="exec"?"block":"none";
+  destroyCharts();
+  if(which==="status")renderStatusReport(); else renderExecReport();
+}
+function renderStatusReport(){
+  const R=DATA.meta.report;
+  $("#rsTitle").textContent=DATA.meta.title||"Projeto";
+  $("#rsDate").value=R.statusDate; $("#rsOverall").value=R.overall; $("#rsComment").value=R.commentary;
+  $("#rsSchedule").innerHTML=DATA.rows.filter(r=>r.level===1&&isActive(r)).map(p=>{
+    const prog=effProgress(p);
+    return `<tr><td>${esc(p.id)}</td><td>${esc(p.produto)}</td><td>${fmtDate(p.inicio)}</td><td>${fmtDate(p.conclusao)}</td>
+      <td><span class="badge" style="background:${statusColor(p.situacao)}">${esc(p.situacao||"—")}</span></td>
+      <td class="cellprog"><div class="row"><div class="miniprog exec"><i style="width:${prog}%"></i></div><b>${prog}%</b></div></td></tr>`;}).join("");
+  const c=situacaoCounts();
+  mkChart("chTasks","doughnut",Object.keys(c),Object.values(c),["#2e8b57","#2e75b6","#b0b7c3","#c00000","#8e44ad"]);
+  const b=budgetByProduct();
+  mkChart("chBudget","bar",b.map(x=>x.id),b.map(x=>x.valor),"#2e75b6");
+  mkChart("chRisks","doughnut",Object.keys(R.risks),Object.values(R.risks),["#c00000","#ed7d31","#a9d18e"]);
+  mkChart("chIssues","doughnut",Object.keys(R.issues),Object.values(R.issues),["#c00000","#ed7d31","#a9d18e"]);
+  mkChart("chPend","bar",Object.keys(R.pend),Object.values(R.pend),"#2e75b6");
+  const g=(id,v)=>{const e=$("#"+id);if(e)e.value=v;};
+  g("rk_Alto",R.risks["Alto"]);g("rk_Medio",R.risks["Médio"]);g("rk_Baixo",R.risks["Baixo"]);
+  g("is_Alto",R.issues["Alto"]);g("is_Medio",R.issues["Médio"]);g("is_Baixo",R.issues["Baixo"]);
+  g("pd_Dec",R.pend["Decisões"]);g("pd_Aco",R.pend["Ações"]);g("pd_Mud",R.pend["Mudanças"]);
+}
+function renderExecReport(){
+  const R=DATA.meta.report;
+  $("#reTitle").textContent=DATA.meta.title||"Projeto";
+  $("#reObjectives").value=R.objectives; $("#rePotential").value=R.potentialRisks; $("#reAction").value=R.actionText;
+  $("#reFactors").innerHTML=R.factors.map((f,i)=>`<tr>
+    <td><input class="ei" value="${esc(f.fator)}" onchange="factorSet(${i},'fator',this.value)"/></td>
+    <td><input class="ei" value="${esc(f.comentario)}" onchange="factorSet(${i},'comentario',this.value)"/></td>
+    <td style="text-align:center"><button class="rowbtn" style="color:var(--danger)" onclick="factorDel(${i})">x</button></td></tr>`).join("");
+  $("#reKpis").innerHTML=R.kpis.map((k,i)=>`<tr>
+    <td><input class="ei" value="${esc(k.obj)}" onchange="kpiSet(${i},'obj',this.value)"/></td>
+    <td><input class="ei" value="${esc(k.kpi)}" onchange="kpiSet(${i},'kpi',this.value)"/></td>
+    <td style="text-align:center"><button class="rowbtn" style="color:var(--danger)" onclick="kpiDel(${i})">x</button></td></tr>`).join("");
+  $("#reActionAuto").innerHTML=DATA.rows.filter(r=>isActive(r)&&(r.proximos||"").trim()).map(r=>`<tr><td>${esc(r.id)}</td><td>${esc(r.produto)}</td><td>${esc(r.proximos)}</td></tr>`).join("")||'<tr><td colspan="3" class="note">Sem próximos passos preenchidos.</td></tr>';
+  const b=budgetByProduct();
+  mkChart("chCost","pie",b.map(x=>x.nome),b.map(x=>x.valor),PALETTE.slice(0,b.length));
+  const tot=b.reduce((a,x)=>a+x.valor,0);
+  $("#reBudget").innerHTML=b.map(x=>`<tr><td>${esc(x.nome)}</td><td style="text-align:right">R$ ${x.valor.toLocaleString("pt-BR")}</td></tr>`).join("")
+    +`<tr><td><b>Total</b></td><td style="text-align:right"><b>R$ ${tot.toLocaleString("pt-BR")}</b></td></tr>`;
+}
+function factorSet(i,f,v){ DATA.meta.report.factors[i][f]=v; persist(); }
+function factorAdd(){ DATA.meta.report.factors.push({fator:"",comentario:""}); persist(); renderExecReport(); }
+function factorDel(i){ DATA.meta.report.factors.splice(i,1); persist(); renderExecReport(); }
+function kpiSet(i,f,v){ DATA.meta.report.kpis[i][f]=v; persist(); }
+function kpiAdd(){ DATA.meta.report.kpis.push({obj:"",kpi:""}); persist(); renderExecReport(); }
+function kpiDel(i){ DATA.meta.report.kpis.splice(i,1); persist(); renderExecReport(); }
 
 boot();
 </script>
