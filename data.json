@@ -3,7 +3,104 @@
     "title": "Acompanhamento PROFISCO II — Componente 3 (versão pública)",
     "subtitle": "Administração Financeira e Gasto Público — SEEC/DF · dados de governança (responsáveis) omitidos",
     "source": "ACOMPANHAMENTO PROFISCO II - vs 25_06_2026.xlsx",
-    "updated": "2026-07-01"
+    "updated": "2026-07-01",
+    "risks": [
+      {
+        "id": "R1",
+        "risco": "Insuficiência de pessoal qualificado para elaboração dos artefatos da contratação do SIAFIC",
+        "causas": "Escassez de especialistas em contratações de TI; alta rotatividade; falta de domínio da IN 94/2022 e da Lei 14.133/2021.",
+        "consequencias": "Atrasos na elaboração do TR e dos documentos técnicos; inconsistências nos artefatos; risco de impugnações.",
+        "prob": 4,
+        "impacto": 4,
+        "nivel": "Alto",
+        "controles": "Idealmente: (i) capacitação imediata da equipe; (ii) contratação de consultoria técnica especializada; (iii) reforço de profissionais da SETIC e da UGP PROFISCO; (iv) padronização e consolidação dos artefatos. Considerando a falta de tempo hábil para implementar tais medidas com eficácia no momento, o GT-SIAFI deliberou pela alternativa mais viável e imediata: negociar com o BID o ajuste dos prazos de entrega dos artefatos, de modo a garantir a qualidade técnica e a adequada instrução do processo de contratação do novo SIAFIC."
+      },
+      {
+        "id": "R2",
+        "risco": "Não implementação do SIAFIC dentro do prazo estipulado pelo BID (31/12/2029)",
+        "causas": "Complexidade inerente a sistemas estruturantes; dependência da conclusão da licitação; integrações com módulos legados.",
+        "consequencias": "Risco de descumprimento contratual com o BID; perda de desembolsos; necessidade de reprogramação contratual.",
+        "prob": 3,
+        "impacto": 5,
+        "nivel": "Alto",
+        "controles": "Cronograma integrado com marcos críticos; monitoramento mensal; reporte periódico à UGP PROFISCO e à SUGEST; avaliação trimestral de riscos."
+      },
+      {
+        "id": "R3",
+        "risco": "Licitação deserta por escassez de oferta ou exigência de licenciamento restritivo",
+        "causas": "Poucos fornecedores aderentes ao SIAFIC; modelo de licenciamento perpétuo; preços elevados.",
+        "consequencias": "Atraso grave no projeto; necessidade de republicação do edital; perda de prazos do PROFISCO II.",
+        "prob": 3,
+        "impacto": 4,
+        "nivel": "Alto",
+        "controles": "Ampla pesquisa de mercado; flexibilização do modelo de licenciamento (cloud/híbrido); audiência pública; consulta formal ao mercado."
+      },
+      {
+        "id": "R4",
+        "risco": "Falhas na gestão do contrato de implementação do SIAFIC",
+        "causas": "Falta de governança contratual; ausência de equipe especializada em fiscalização técnica de TI; documentação insuficiente.",
+        "consequencias": "Retrabalho; entregas em desacordo; atrasos acumulados; risco de glosas pelo BID.",
+        "prob": 3,
+        "impacto": 5,
+        "nivel": "Alto",
+        "controles": "Contratação de Consultoria de Gestão de Contratos de TI; PMO integrado; comitê técnico de acompanhamento; matriz RACI da fiscalização."
+      },
+      {
+        "id": "R5",
+        "risco": "Descontinuidade de servidores-chave do GT-SIAFI",
+        "causas": "Aposentadorias, afastamentos e rotatividade.",
+        "consequencias": "Perda de conhecimento institucional; impacto em decisões técnicas; atraso nos artefatos.",
+        "prob": 3,
+        "impacto": 4,
+        "nivel": "Médio",
+        "controles": "Registro contínuo de conhecimento; repositório SEI/SharePoint; capacitação cruzada."
+      },
+      {
+        "id": "R6",
+        "risco": "Integridade e completude da migração dos dados do SIGGo legado",
+        "causas": "Falta de documentação técnica; fragilidades históricas do banco de dados; limitações de interoperabilidade.",
+        "consequencias": "Inconsistências contábeis; falha na geração da MSC; riscos fiscais e reputacionais.",
+        "prob": 2,
+        "impacto": 5,
+        "nivel": "Alto",
+        "controles": "Plano detalhado de migração de dados; inventário de bases; testes integrados; ambiente de homologação robusto."
+      },
+      {
+        "id": "R7",
+        "risco": "Restrição orçamentária ou contingenciamento dos recursos do PROFISCO II",
+        "causas": "Limitações fiscais; reprogramações orçamentárias; dependência de contrapartida local.",
+        "consequencias": "Interrupção ou desaceleração da execução; impacto em cronogramas; risco de inadimplência contratual.",
+        "prob": 1,
+        "impacto": 3,
+        "nivel": "Médio",
+        "controles": "Monitoramento da execução financeira; priorização no PPA/LOA; diálogo permanente com o BID para reprogramações."
+      },
+      {
+        "id": "R8",
+        "risco": "Resistência dos usuários à adoção do novo sistema (mudança de cultura)",
+        "causas": "Mudança de processos; curva de aprendizagem elevada; ausência de comunicação clara.",
+        "consequencias": "Baixa adesão; mau uso do sistema; atraso na estabilização da operação.",
+        "prob": 3,
+        "impacto": 3,
+        "nivel": "Médio",
+        "controles": "Plano robusto de gestão de mudanças; capacitações contínuas; campanhas internas; envolvimento das áreas finalísticas desde o início."
+      },
+      {
+        "id": "R9",
+        "risco": "Falhas de integração entre o novo SIAFIC e demais sistemas estruturantes do GDF",
+        "causas": "Arquiteturas distintas; sistemas legados sem documentação; dependência de múltiplos fornecedores.",
+        "consequencias": "Perda de funcionalidades; retrabalho manual; risco de interrupção de processos críticos.",
+        "prob": 2,
+        "impacto": 4,
+        "nivel": "Médio",
+        "controles": "Arquitetura orientada a APIs; mapa de integrações; testes integrados; governança técnica SETIC-CONTDF."
+      }
+    ],
+    "riskMeta": {
+      "projeto": "Implementação do Sistema de 3ª geração para Gestão Orçamentária, Financeira e Contábil do DF (SIAFIC / Novo SIGGO)",
+      "fonte": "SEI 04044-00057509/2025-17 — Matriz de Riscos Estratégicos (doc. 189357874), CONTDF/UPROC, 09/12/2025 (MINUTA)",
+      "data": "2025-12-09"
+    }
   },
   "columns": [
     {
