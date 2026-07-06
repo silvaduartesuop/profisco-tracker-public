@@ -235,7 +235,7 @@
       </div>
       <div class="rgrid3">
         <div class="repcard"><div class="rsec">Riscos</div><div class="chartbox" style="height:180px"><canvas id="chRisks"></canvas></div>
-          <div class="note" style="margin-top:6px">Alto <input class="ei" style="width:48px" id="rk_Alto" type="number" onchange="repCount('risks','Alto',this.value)"/>
+          <div class="note" style="margin-top:6px"><b>Automático da Matriz de Riscos</b> (Extremo+Alto = Alto)<br>Alto <input class="ei" style="width:48px" id="rk_Alto" type="number" onchange="repCount('risks','Alto',this.value)"/>
           Médio <input class="ei" style="width:48px" id="rk_Medio" type="number" onchange="repCount('risks','Médio',this.value)"/>
           Baixo <input class="ei" style="width:48px" id="rk_Baixo" type="number" onchange="repCount('risks','Baixo',this.value)"/></div></div>
         <div class="repcard"><div class="rsec">Issues</div><div class="chartbox" style="height:180px"><canvas id="chIssues"></canvas></div>
@@ -743,6 +743,8 @@ function renderReports(){
   destroyCharts();
   if(which==="status")renderStatusReport(); else renderExecReport();
 }
+function riskCountsFromMatrix(){ if(typeof initRisks==="function")initRisks(); const c={"Alto":0,"Médio":0,"Baixo":0};
+  (DATA.meta.risks||[]).forEach(r=>{const n=r.nivel; if(n==="Extremo"||n==="Alto")c["Alto"]++; else if(n==="Médio")c["Médio"]++; else c["Baixo"]++;}); return c; }
 function renderStatusReport(){
   const R=DATA.meta.report;
   $("#rsTitle").textContent=DATA.meta.title||"Projeto";
@@ -756,11 +758,13 @@ function renderStatusReport(){
   mkChart("chTasks","doughnut",Object.keys(c),Object.values(c),["#2e8b57","#2e75b6","#b0b7c3","#c00000","#8e44ad"]);
   const b=budgetByProduct();
   mkChart("chBudget","bar",b.map(x=>x.id),b.map(x=>x.valor),"#2e75b6");
-  mkChart("chRisks","doughnut",Object.keys(R.risks),Object.values(R.risks),["#c00000","#ed7d31","#a9d18e"]);
+  const rc=riskCountsFromMatrix();
+  mkChart("chRisks","doughnut",Object.keys(rc),Object.values(rc),["#c00000","#ed7d31","#a9d18e"]);
   mkChart("chIssues","doughnut",Object.keys(R.issues),Object.values(R.issues),["#c00000","#ed7d31","#a9d18e"]);
   mkChart("chPend","bar",Object.keys(R.pend),Object.values(R.pend),"#2e75b6");
   const g=(id,v)=>{const e=$("#"+id);if(e)e.value=v;};
-  g("rk_Alto",R.risks["Alto"]);g("rk_Medio",R.risks["Médio"]);g("rk_Baixo",R.risks["Baixo"]);
+  g("rk_Alto",rc["Alto"]);g("rk_Medio",rc["Médio"]);g("rk_Baixo",rc["Baixo"]);
+  ["rk_Alto","rk_Medio","rk_Baixo"].forEach(id=>{const e=$("#"+id);if(e){e.disabled=true;e.title="Contagem automática da Matriz de Riscos";}});
   g("is_Alto",R.issues["Alto"]);g("is_Medio",R.issues["Médio"]);g("is_Baixo",R.issues["Baixo"]);
   g("pd_Dec",R.pend["Decisões"]);g("pd_Aco",R.pend["Ações"]);g("pd_Mud",R.pend["Mudanças"]);
 }
