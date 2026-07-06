@@ -178,6 +178,8 @@
     <button class="tab active" id="tabTrack" onclick="showView('track')">Acompanhamento</button>
     <button class="tab" id="tabReports" onclick="showView('reports')">Relatórios</button>
     <button class="tab" id="tabRisks" onclick="showView('risks')">Matriz de Riscos</button>
+    <button class="tab" id="tabIssues" onclick="showView('issues')">Issues</button>
+    <button class="tab" id="tabActions" onclick="showView('actions')">Ações &amp; Decisões</button>
   </div>
 </header>
 
@@ -239,11 +241,11 @@
           Médio <input class="ei" style="width:48px" id="rk_Medio" type="number" onchange="repCount('risks','Médio',this.value)"/>
           Baixo <input class="ei" style="width:48px" id="rk_Baixo" type="number" onchange="repCount('risks','Baixo',this.value)"/></div></div>
         <div class="repcard"><div class="rsec">Issues</div><div class="chartbox" style="height:180px"><canvas id="chIssues"></canvas></div>
-          <div class="note" style="margin-top:6px">Alto <input class="ei" style="width:48px" id="is_Alto" type="number" onchange="repCount('issues','Alto',this.value)"/>
+          <div class="note" style="margin-top:6px"><b>Automático da aba Issues</b> (não resolvidas)<br>Alto <input class="ei" style="width:48px" id="is_Alto" type="number" onchange="repCount('issues','Alto',this.value)"/>
           Médio <input class="ei" style="width:48px" id="is_Medio" type="number" onchange="repCount('issues','Médio',this.value)"/>
           Baixo <input class="ei" style="width:48px" id="is_Baixo" type="number" onchange="repCount('issues','Baixo',this.value)"/></div></div>
         <div class="repcard"><div class="rsec">Decisões / Ações / Pendências</div><div class="chartbox" style="height:180px"><canvas id="chPend"></canvas></div>
-          <div class="note" style="margin-top:6px">Decisões <input class="ei" style="width:48px" id="pd_Dec" type="number" onchange="repCount('pend','Decisões',this.value)"/>
+          <div class="note" style="margin-top:6px"><b>Automático da aba Ações & Decisões</b> (em aberto)<br>Decisões <input class="ei" style="width:48px" id="pd_Dec" type="number" onchange="repCount('pend','Decisões',this.value)"/>
           Ações <input class="ei" style="width:48px" id="pd_Aco" type="number" onchange="repCount('pend','Ações',this.value)"/>
           Mudanças <input class="ei" style="width:48px" id="pd_Mud" type="number" onchange="repCount('pend','Mudanças',this.value)"/></div></div>
       </div>
@@ -292,6 +294,28 @@
       <button class="btn" style="margin-top:10px" onclick="riskAdd()">+ Novo risco</button>
     </div>
   </div>
+  <div id="viewIssues" style="display:none">
+    <div class="repcard"><div class="rsec">Issues</div>
+      <div class="note" style="margin:2px 0 8px" id="isSummary"></div>
+      <div style="overflow:auto"><table class="rtab"><thead><tr>
+        <th style="width:52px">ID</th><th style="width:20%">Título</th><th>Descrição</th><th style="width:14%">Responsável</th>
+        <th style="width:96px">Data</th><th style="width:82px">Severidade</th><th style="width:112px">Situação</th><th style="width:64px"></th>
+      </tr></thead><tbody id="isBody"></tbody></table></div>
+      <button class="btn" style="margin-top:10px" onclick="issueAdd()">+ Nova issue</button>
+      <div class="note" style="margin-top:8px">O card <b>Issues</b> do relatório conta as issues <b>não resolvidas</b>, por severidade.</div>
+    </div>
+  </div>
+  <div id="viewActions" style="display:none">
+    <div class="repcard"><div class="rsec">Ações &amp; Decisões</div>
+      <div class="note" style="margin:2px 0 8px" id="acSummary"></div>
+      <div style="overflow:auto"><table class="rtab"><thead><tr>
+        <th style="width:52px">ID</th><th style="width:20%">Título</th><th>Descrição</th><th style="width:96px">Tipo</th>
+        <th style="width:14%">Responsável</th><th style="width:96px">Data</th><th style="width:100px">Situação</th><th style="width:64px"></th>
+      </tr></thead><tbody id="acBody"></tbody></table></div>
+      <button class="btn" style="margin-top:10px" onclick="actAdd()">+ Novo registro</button>
+      <div class="note" style="margin-top:8px">Tipos: Decisão, Ação, Mudança. O card <b>Decisões / Ações / Pendências</b> conta os itens <b>em aberto</b>, por tipo.</div>
+    </div>
+  </div>
 </main>
 
 <div class="ov" id="ovEdit"><div class="modal">
@@ -329,6 +353,20 @@
     <button class="btn" onclick="closeRiskEdit()">Cancelar</button>
     <button class="btn primary" onclick="saveRiskEdit()">Salvar risco</button>
   </div>
+</div></div>
+
+<div class="ov" id="ovIssue"><div class="modal">
+  <h3><span id="isEdTitle">Issue</span><button class="x" onclick="closeIssueEdit()">×</button></h3>
+  <div class="body" id="isEdBody"></div>
+  <div class="foot"><button class="btn danger" onclick="issueDel()" style="margin-right:auto">Excluir</button>
+    <button class="btn" onclick="closeIssueEdit()">Cancelar</button><button class="btn primary" onclick="saveIssueEdit()">Salvar</button></div>
+</div></div>
+
+<div class="ov" id="ovAct"><div class="modal">
+  <h3><span id="acEdTitle">Registro</span><button class="x" onclick="closeActEdit()">×</button></h3>
+  <div class="body" id="acEdBody"></div>
+  <div class="foot"><button class="btn danger" onclick="actDel()" style="margin-right:auto">Excluir</button>
+    <button class="btn" onclick="closeActEdit()">Cancelar</button><button class="btn primary" onclick="saveActEdit()">Salvar</button></div>
 </div></div>
 
 <div class="toast" id="toast"></div>
@@ -395,6 +433,8 @@ function afterLoad(){
   rebuildTree();
   initReport();
   initRisks();
+  initIssues();
+  initActions();
   EXPANDED=new Set(DATA.rows.filter(r=>r.level===0).map(r=>r.id));
   $("#pTitle").textContent=DATA.meta.title||"Acompanhamento";
   $("#pSub").textContent=(DATA.meta.subtitle||"")+"  ·  fonte: "+(DATA.meta.source||"")+"  ·  atualizado: "+(DATA.meta.updated||"");
@@ -700,12 +740,13 @@ function initReport(){
   if(!Array.isArray(R.kpis))R.kpis=[{obj:"",kpi:""}];
 }
 function showView(v){
-  const views={track:"viewTrack",reports:"viewReports",risks:"viewRisks"};
-  const tabs={track:"tabTrack",reports:"tabReports",risks:"tabRisks"};
+  const views={track:"viewTrack",reports:"viewReports",risks:"viewRisks",issues:"viewIssues",actions:"viewActions"};
+  const tabs={track:"tabTrack",reports:"tabReports",risks:"tabRisks",issues:"tabIssues",actions:"tabActions"};
   Object.entries(views).forEach(([k,id])=>{const e=$("#"+id);if(e)e.style.display=(k===v?"block":"none");});
   Object.entries(tabs).forEach(([k,id])=>{const e=$("#"+id);if(e)e.classList.toggle("active",k===v);});
   destroyCharts();
   if(v==="reports")renderReports(); else if(v==="risks")renderRisks();
+  else if(v==="issues")renderIssues(); else if(v==="actions")renderActions();
 }
 function repField(k,v){ DATA.meta.report[k]=v; persist(); }
 function repCount(group,key,v){ DATA.meta.report[group][key]=Math.max(0,+v||0); persist(); renderReports(); }
@@ -760,13 +801,16 @@ function renderStatusReport(){
   mkChart("chBudget","bar",b.map(x=>x.id),b.map(x=>x.valor),"#2e75b6");
   const rc=riskCountsFromMatrix();
   mkChart("chRisks","doughnut",Object.keys(rc),Object.values(rc),["#c00000","#ed7d31","#a9d18e"]);
-  mkChart("chIssues","doughnut",Object.keys(R.issues),Object.values(R.issues),["#c00000","#ed7d31","#a9d18e"]);
-  mkChart("chPend","bar",Object.keys(R.pend),Object.values(R.pend),"#2e75b6");
+  const ic=issueCounts();
+  mkChart("chIssues","doughnut",Object.keys(ic),Object.values(ic),["#c00000","#ed7d31","#a9d18e"]);
+  const ac=actionCounts();
+  mkChart("chPend","bar",Object.keys(ac),Object.values(ac),"#2e75b6");
   const g=(id,v)=>{const e=$("#"+id);if(e)e.value=v;};
   g("rk_Alto",rc["Alto"]);g("rk_Medio",rc["Médio"]);g("rk_Baixo",rc["Baixo"]);
   ["rk_Alto","rk_Medio","rk_Baixo"].forEach(id=>{const e=$("#"+id);if(e){e.disabled=true;e.title="Contagem automática da Matriz de Riscos";}});
-  g("is_Alto",R.issues["Alto"]);g("is_Medio",R.issues["Médio"]);g("is_Baixo",R.issues["Baixo"]);
-  g("pd_Dec",R.pend["Decisões"]);g("pd_Aco",R.pend["Ações"]);g("pd_Mud",R.pend["Mudanças"]);
+  g("is_Alto",ic["Alto"]);g("is_Medio",ic["Médio"]);g("is_Baixo",ic["Baixo"]);
+  g("pd_Dec",ac["Decisões"]);g("pd_Aco",ac["Ações"]);g("pd_Mud",ac["Mudanças"]);
+  ["is_Alto","is_Medio","is_Baixo","pd_Dec","pd_Aco","pd_Mud"].forEach(id=>{const e=$("#"+id);if(e){e.disabled=true;e.title="Contagem automática (abas Issues / Ações & Decisões)";}});
 }
 function renderExecReport(){
   const R=DATA.meta.report;
@@ -853,6 +897,93 @@ function riskAdd(){ initRisks(); const nums=DATA.meta.risks.map(r=>+String(r.id)
   persist(); renderRisks(); openRiskEdit("R"+n); }
 function riskDel(){ if(!RISK_EDIT)return; if(!confirm("Excluir o risco "+RISK_EDIT+"? Esta ação não pode ser desfeita."))return;
   DATA.meta.risks=DATA.meta.risks.filter(x=>x.id!==RISK_EDIT); persist(); closeRiskEdit(); renderRisks(); toast("Risco excluído."); }
+
+/* ---------- Issues ---------- */
+const ISSUE_SEV=["Alto","Médio","Baixo"];
+const ISSUE_SIT=["Aberta","Em tratamento","Resolvida"];
+let ISSUE_EDIT=null;
+function initIssues(){ if(!Array.isArray(DATA.meta.issues))DATA.meta.issues=[]; }
+function issueCounts(){ initIssues(); const c={"Alto":0,"Médio":0,"Baixo":0};
+  DATA.meta.issues.forEach(x=>{ if((x.situacao||"")!=="Resolvida"){ const s=ISSUE_SEV.includes(x.severidade)?x.severidade:"Médio"; c[s]++; } }); return c; }
+function issueBadge(s){return {"Alto":"nv-alto","Médio":"nv-medio","Baixo":"nv-baixo"}[s]||"nv-medio";}
+function issueSitColor(s){return {"Aberta":"var(--late)","Em tratamento":"var(--run)","Resolvida":"var(--ok)"}[s]||"var(--idle)";}
+function renderIssues(){ if(!DATA)return; initIssues();
+  $("#isBody").innerHTML=DATA.meta.issues.map(x=>`<tr>
+    <td><b>${esc(x.id)}</b></td><td>${esc(x.titulo)}</td><td class="note">${esc(x.desc)}</td>
+    <td>${esc(x.resp)}</td><td>${fmtDate(x.data)}</td>
+    <td><span class="badge ${issueBadge(x.severidade)}">${esc(x.severidade)}</span></td>
+    <td><span class="badge" style="background:${issueSitColor(x.situacao)}">${esc(x.situacao||"—")}</span></td>
+    <td><button class="rowbtn" onclick="openIssueEdit('${x.id}')">Abrir ▸</button></td></tr>`).join("")
+    || '<tr><td colspan="8" class="note">Nenhuma issue cadastrada. Clique em "+ Nova issue".</td></tr>';
+  const c=issueCounts(); $("#isSummary").textContent=`${DATA.meta.issues.length} cadastradas · não resolvidas: Alto ${c.Alto}, Médio ${c["Médio"]}, Baixo ${c.Baixo}`;
+}
+function openIssueEdit(id){ initIssues(); const x=DATA.meta.issues.find(i=>i.id===id); if(!x)return; ISSUE_EDIT=id;
+  const sev=`<select data-is="severidade">`+ISSUE_SEV.map(s=>`<option ${x.severidade===s?"selected":""}>${s}</option>`).join("")+`</select>`;
+  const st=`<select data-is="situacao">`+ISSUE_SIT.map(s=>`<option ${x.situacao===s?"selected":""}>${s}</option>`).join("")+`</select>`;
+  $("#isEdTitle").textContent="Issue "+x.id;
+  $("#isEdBody").innerHTML=`
+    <div class="fld"><label>Título</label><input data-is="titulo" value="${esc(x.titulo)}"/></div>
+    <div class="fld"><label>Descrição</label><textarea data-is="desc">${esc(x.desc)}</textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12px">
+      <div class="fld"><label>Responsável</label><input data-is="resp" value="${esc(x.resp)}"/></div>
+      <div class="fld"><label>Data</label><input type="date" data-is="data" value="${esc(x.data)}"/></div>
+      <div class="fld"><label>Severidade</label>${sev}</div>
+      <div class="fld"><label>Situação</label>${st}</div></div>`;
+  $("#ovIssue").classList.add("on");
+}
+function closeIssueEdit(){$("#ovIssue").classList.remove("on");ISSUE_EDIT=null;}
+function saveIssueEdit(){ const x=DATA.meta.issues.find(i=>i.id===ISSUE_EDIT); if(!x)return;
+  $("#isEdBody").querySelectorAll("[data-is]").forEach(el=>{x[el.getAttribute("data-is")]=el.value;});
+  persist(); closeIssueEdit(); renderIssues(); toast("Issue salva."); }
+function issueAdd(){ initIssues(); const nums=DATA.meta.issues.map(i=>+String(i.id).replace(/\D/g,"")||0);
+  const id="I"+((nums.length?Math.max(...nums):0)+1);
+  DATA.meta.issues.push({id:id,titulo:"",desc:"",resp:"",data:new Date().toISOString().slice(0,10),severidade:"Médio",situacao:"Aberta"});
+  persist(); renderIssues(); openIssueEdit(id); }
+function issueDel(){ if(!ISSUE_EDIT)return; if(!confirm("Excluir a issue "+ISSUE_EDIT+"?"))return;
+  DATA.meta.issues=DATA.meta.issues.filter(i=>i.id!==ISSUE_EDIT); persist(); closeIssueEdit(); renderIssues(); toast("Issue excluída."); }
+
+/* ---------- Ações & Decisões ---------- */
+const ACT_TIPO=["Decisão","Ação","Mudança"];
+const ACT_SIT=["Aberta","Concluída"];
+const TIPO2BUCKET={"Decisão":"Decisões","Ação":"Ações","Mudança":"Mudanças"};
+let ACT_EDIT=null;
+function initActions(){ if(!Array.isArray(DATA.meta.actions))DATA.meta.actions=[]; }
+function actionCounts(){ initActions(); const c={"Decisões":0,"Ações":0,"Mudanças":0};
+  DATA.meta.actions.forEach(x=>{ if((x.situacao||"")!=="Concluída"){ const b=TIPO2BUCKET[x.tipo]; if(b)c[b]++; } }); return c; }
+function renderActions(){ if(!DATA)return; initActions();
+  const sit=s=>s==="Concluída"?"var(--ok)":"var(--run)";
+  $("#acBody").innerHTML=DATA.meta.actions.map(x=>`<tr>
+    <td><b>${esc(x.id)}</b></td><td>${esc(x.titulo)}</td><td class="note">${esc(x.desc)}</td>
+    <td>${esc(x.tipo)}</td><td>${esc(x.resp)}</td><td>${fmtDate(x.data)}</td>
+    <td><span class="badge" style="background:${sit(x.situacao)}">${esc(x.situacao||"—")}</span></td>
+    <td><button class="rowbtn" onclick="openActEdit('${x.id}')">Abrir ▸</button></td></tr>`).join("")
+    || '<tr><td colspan="8" class="note">Nada cadastrado. Clique em "+ Novo registro".</td></tr>';
+  const c=actionCounts(); $("#acSummary").textContent=`${DATA.meta.actions.length} registros · em aberto: Decisões ${c["Decisões"]}, Ações ${c["Ações"]}, Mudanças ${c["Mudanças"]}`;
+}
+function openActEdit(id){ initActions(); const x=DATA.meta.actions.find(i=>i.id===id); if(!x)return; ACT_EDIT=id;
+  const tp=`<select data-ac="tipo">`+ACT_TIPO.map(s=>`<option ${x.tipo===s?"selected":""}>${s}</option>`).join("")+`</select>`;
+  const st=`<select data-ac="situacao">`+ACT_SIT.map(s=>`<option ${x.situacao===s?"selected":""}>${s}</option>`).join("")+`</select>`;
+  $("#acEdTitle").textContent="Registro "+x.id;
+  $("#acEdBody").innerHTML=`
+    <div class="fld"><label>Título</label><input data-ac="titulo" value="${esc(x.titulo)}"/></div>
+    <div class="fld"><label>Descrição</label><textarea data-ac="desc">${esc(x.desc)}</textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12px">
+      <div class="fld"><label>Tipo</label>${tp}</div>
+      <div class="fld"><label>Situação</label>${st}</div>
+      <div class="fld"><label>Responsável</label><input data-ac="resp" value="${esc(x.resp)}"/></div>
+      <div class="fld"><label>Data</label><input type="date" data-ac="data" value="${esc(x.data)}"/></div></div>`;
+  $("#ovAct").classList.add("on");
+}
+function closeActEdit(){$("#ovAct").classList.remove("on");ACT_EDIT=null;}
+function saveActEdit(){ const x=DATA.meta.actions.find(i=>i.id===ACT_EDIT); if(!x)return;
+  $("#acEdBody").querySelectorAll("[data-ac]").forEach(el=>{x[el.getAttribute("data-ac")]=el.value;});
+  persist(); closeActEdit(); renderActions(); toast("Registro salvo."); }
+function actAdd(){ initActions(); const nums=DATA.meta.actions.map(i=>+String(i.id).replace(/\D/g,"")||0);
+  const id="A"+((nums.length?Math.max(...nums):0)+1);
+  DATA.meta.actions.push({id:id,titulo:"",desc:"",tipo:"Ação",resp:"",data:new Date().toISOString().slice(0,10),situacao:"Aberta"});
+  persist(); renderActions(); openActEdit(id); }
+function actDel(){ if(!ACT_EDIT)return; if(!confirm("Excluir o registro "+ACT_EDIT+"?"))return;
+  DATA.meta.actions=DATA.meta.actions.filter(i=>i.id!==ACT_EDIT); persist(); closeActEdit(); renderActions(); toast("Registro excluído."); }
 
 boot();
 </script>
